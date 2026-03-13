@@ -198,4 +198,72 @@ describe("scrapeRecipe", () => {
 
 		vi.unstubAllGlobals();
 	});
+
+	it("ヨシケイのHTML構造からレシピを抽出できる", async () => {
+		const html = `
+<!DOCTYPE html>
+<html>
+<head><title>商品詳細 | ヨシケイ</title></head>
+<body>
+  <h1><span>主菜</span>鶏すき煮 <span>副菜</span>にら玉焼き</h1>
+  <section>
+    <h3>材料</h3>
+    <div>
+      <h4>鶏すき煮</h4>
+      <table>
+        <thead>
+          <tr><th>材料</th><th>2人用</th><th>3人用</th><th>4人用</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>若鶏モモ肉</td><td>200g</td><td>300g</td><td>400g</td></tr>
+          <tr><td>豆腐</td><td>1パック</td><td>1と1/2パック</td><td>2パック</td></tr>
+          <tr><td><span>A</span> だし汁</td><td>120ml</td><td>180ml</td><td>240ml</td></tr>
+          <tr><td><span>A</span> しょうゆ</td><td>大2</td><td>大3</td><td>大4</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div>
+      <h4>にら玉焼き</h4>
+      <table>
+        <thead>
+          <tr><th>材料</th><th>2人用</th><th>3人用</th><th>4人用</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>卵</td><td>2コ</td><td>3コ</td><td>4コ</td></tr>
+          <tr><td><span>B</span> 酒</td><td>大1/2</td><td>大2/3</td><td>大1</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+</body>
+</html>
+`;
+
+		vi.stubGlobal(
+			"fetch",
+			vi.fn().mockResolvedValue({
+				ok: true,
+				text: () => Promise.resolve(html),
+			}),
+		);
+
+		const result = await scrapeRecipe(
+			"https://www2.yoshikei-dvlp.co.jp/webodr/apl/10/recipe.aspx",
+		);
+
+		expect(result.ok).toBe(true);
+		if (!result.ok) return;
+		expect(result.data.name).toBe("鶏すき煮・にら玉焼き");
+		expect(result.data.recipeYield).toBe("2人分");
+		expect(result.data.recipeIngredient).toEqual([
+			"若鶏モモ肉 200g",
+			"豆腐 1パック",
+			"だし汁 120ml",
+			"しょうゆ 大2",
+			"卵 2コ",
+			"酒 大1/2",
+		]);
+
+		vi.unstubAllGlobals();
+	});
 });

@@ -49,6 +49,12 @@ export async function scrapeRecipe(url: string): Promise<ScrapeResult> {
 		}
 	}
 
+	// サイト固有のスクレイパーにフォールバック
+	if (url.includes("yoshikei")) {
+		const data = scrapeYoshikei(root);
+		if (data) return { ok: true, data };
+	}
+
 	// meta タグからタイトルだけ取れる場合はエラーに含める
 	const title = root.querySelector("title")?.text?.trim() ?? "タイトル不明";
 	return {
@@ -82,6 +88,57 @@ function findRecipeSchema(json: unknown): Record<string, unknown> | null {
 	}
 
 	return null;
+}
+
+// ヨシケイ専用スクレイパー
+// 食材テーブルは「材料名 | 2人用 | 3人用 | 4人用」形式。2人用を使用する。
+function scrapeYoshikei(root: ReturnType<typeof parse>): RecipeData | null {
+	// 「材料」見出し（h3）を探す
+	const allH3 = root.querySelectorAll("h3");
+	const materialH3 = allH3.find((h) => h.text.trim() === "材料");
+	if (!materialH3) return null;
+
+	const materialSection = materialH3.parentNode;
+	if (!materialSection) return null;
+
+	// h4 から料理名を取得（主菜・副菜それぞれ）
+	const dishNames = materialSection
+		.querySelectorAll("h4")
+		.map((h) => h.text.trim())
+		.filter(Boolean);
+
+	const h1 = root.querySelector("h1");
+	const name =
+		dishNames.length > 0
+			? dishNames.join("・")
+			: (h1?.text.replace(/\s+/g, " ").trim() ?? "レシピ名不明");
+
+	// テーブルから食材（2人用カラム）を抽出
+	const ingredients: string[] = [];
+	for (const table of materialSection.querySelectorAll("table")) {
+		for (const row of table.querySelectorAll("tbody tr")) {
+			const cells = row.querySelectorAll("td");
+			if (cells.length < 2) continue;
+
+			// 先頭の A・B グループラベル（半角英大文字1字 + スペース）を除去
+			const materialName = cells[0].text
+				.trim()
+				.replace(/^[A-Z]\s+/, "");
+			const quantity = cells[1].text.trim(); // 2人用
+
+			if (materialName && quantity) {
+				ingredients.push(`${materialName} ${quantity}`);
+			}
+		}
+	}
+
+	if (ingredients.length === 0) return null;
+
+	return {
+		name,
+		recipeYield: "2人分",
+		recipeIngredient: ingredients.map(stripLeadingSymbols),
+	};
 }
 
 // 先頭の全角記号（★◎●■など）と直後の空白を除去する
