@@ -84,6 +84,11 @@ function findRecipeSchema(json: unknown): Record<string, unknown> | null {
 	return null;
 }
 
+// 先頭の全角記号（★◎●■など）と直後の空白を除去する
+function stripLeadingSymbols(s: string): string {
+	return s.replace(/^[^\p{L}\p{N}\s]+\s*/u, "").trim();
+}
+
 function normalizeRecipe(raw: Record<string, unknown>): RecipeData {
 	const name = String(raw.name ?? "レシピ名不明");
 
@@ -92,7 +97,7 @@ function normalizeRecipe(raw: Record<string, unknown>): RecipeData {
 		: String(raw.recipeYield ?? "1人分");
 
 	const recipeIngredient = Array.isArray(raw.recipeIngredient)
-		? raw.recipeIngredient.map(String)
+		? raw.recipeIngredient.map((s) => stripLeadingSymbols(String(s)))
 		: [];
 
 	return { name, recipeYield, recipeIngredient };

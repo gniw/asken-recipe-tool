@@ -159,4 +159,43 @@ describe("scrapeRecipe", () => {
 
 		vi.unstubAllGlobals();
 	});
+
+	it("先頭の全角記号（★◎●■など）を除去する", async () => {
+		const recipe = {
+			"@type": "Recipe",
+			name: "テストレシピ",
+			recipeYield: "2人分",
+			recipeIngredient: [
+				"◎しょうゆ 大さじ1",
+				"★砂糖 小さじ1",
+				"●みりん 大さじ2",
+				"■ごま油 少々",
+				"ニラ 1束", // 記号なし → そのまま
+				"◎◎二重記号 適量", // 複数記号 → すべて除去
+			],
+		};
+
+		vi.stubGlobal(
+			"fetch",
+			vi.fn().mockResolvedValue({
+				ok: true,
+				text: () => Promise.resolve(mockHtmlWithJsonLd(recipe)),
+			}),
+		);
+
+		const result = await scrapeRecipe("https://example.com/symbols");
+
+		expect(result.ok).toBe(true);
+		if (!result.ok) return;
+		expect(result.data.recipeIngredient).toEqual([
+			"しょうゆ 大さじ1",
+			"砂糖 小さじ1",
+			"みりん 大さじ2",
+			"ごま油 少々",
+			"ニラ 1束",
+			"二重記号 適量",
+		]);
+
+		vi.unstubAllGlobals();
+	});
 });
