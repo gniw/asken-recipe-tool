@@ -23,7 +23,30 @@ export async function scrapeRecipe(url: string): Promise<ScrapeResult> {
 		if (!res.ok) {
 			return { ok: false, error: `HTTP ${res.status}: ${res.statusText}` };
 		}
-		html = await res.text();
+		const buffer = await res.arrayBuffer();
+
+		// Content-Type ヘッダーまたは meta タグからエンコーディングを検出する
+		let charset = "utf-8";
+		const ctCharset = (res.headers.get("content-type") ?? "").match(
+			/charset=([\w-]+)/i,
+		)?.[1];
+		if (ctCharset) {
+			charset = ctCharset;
+		} else {
+			// latin1 で先頭2KBを読んでmetaタグのcharsetを探す
+			const preview = new TextDecoder("latin1").decode(
+				new Uint8Array(buffer).slice(0, 2048),
+			);
+			const metaCharset =
+				preview.match(/charset=["']?([\w-]+)/i)?.[1];
+			if (metaCharset) charset = metaCharset;
+		}
+
+		try {
+			html = new TextDecoder(charset).decode(buffer);
+		} catch {
+			html = new TextDecoder("utf-8").decode(buffer);
+		}
 	} catch (e) {
 		return {
 			ok: false,

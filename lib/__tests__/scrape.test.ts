@@ -1,6 +1,19 @@
 import { describe, expect, it, vi } from "vitest";
 import { scrapeRecipe } from "../scrape";
 
+// fetch モックヘルパー（arrayBuffer + headers を返す）
+const mockFetch = (html: string, contentType = "text/html") => {
+	const buffer = new TextEncoder().encode(html).buffer;
+	vi.stubGlobal(
+		"fetch",
+		vi.fn().mockResolvedValue({
+			ok: true,
+			arrayBuffer: () => Promise.resolve(buffer),
+			headers: { get: (key: string) => (key === "content-type" ? contentType : null) },
+		}),
+	);
+};
+
 const mockHtmlWithJsonLd = (recipeJson: object) => `
 <!DOCTYPE html>
 <html>
@@ -23,13 +36,7 @@ describe("scrapeRecipe", () => {
 			recipeIngredient: ["じゃがいも 300g", "玉ねぎ 1個", "牛肉 200g"],
 		};
 
-		vi.stubGlobal(
-			"fetch",
-			vi.fn().mockResolvedValue({
-				ok: true,
-				text: () => Promise.resolve(mockHtmlWithJsonLd(recipe)),
-			}),
-		);
+		mockFetch(mockHtmlWithJsonLd(recipe));
 
 		const result = await scrapeRecipe("https://example.com/recipe/nikujaga");
 
@@ -60,13 +67,7 @@ describe("scrapeRecipe", () => {
 			],
 		};
 
-		vi.stubGlobal(
-			"fetch",
-			vi.fn().mockResolvedValue({
-				ok: true,
-				text: () => Promise.resolve(mockHtmlWithJsonLd(jsonLd)),
-			}),
-		);
+		mockFetch(mockHtmlWithJsonLd(jsonLd));
 
 		const result = await scrapeRecipe("https://example.com/recipe/curry");
 
@@ -82,13 +83,7 @@ describe("scrapeRecipe", () => {
       <html><head><title>普通のページ</title></head><body>レシピなし</body></html>
     `;
 
-		vi.stubGlobal(
-			"fetch",
-			vi.fn().mockResolvedValue({
-				ok: true,
-				text: () => Promise.resolve(html),
-			}),
-		);
+		mockFetch(html);
 
 		const result = await scrapeRecipe("https://example.com/not-recipe");
 
@@ -143,13 +138,7 @@ describe("scrapeRecipe", () => {
 			// recipeIngredient なし
 		};
 
-		vi.stubGlobal(
-			"fetch",
-			vi.fn().mockResolvedValue({
-				ok: true,
-				text: () => Promise.resolve(mockHtmlWithJsonLd(recipe)),
-			}),
-		);
+		mockFetch(mockHtmlWithJsonLd(recipe));
 
 		const result = await scrapeRecipe("https://example.com/simple");
 
@@ -170,18 +159,12 @@ describe("scrapeRecipe", () => {
 				"★砂糖 小さじ1",
 				"●みりん 大さじ2",
 				"■ごま油 少々",
-				"ニラ 1束", // 記号なし → そのまま
-				"◎◎二重記号 適量", // 複数記号 → すべて除去
+				"ニラ 1束",
+				"◎◎二重記号 適量",
 			],
 		};
 
-		vi.stubGlobal(
-			"fetch",
-			vi.fn().mockResolvedValue({
-				ok: true,
-				text: () => Promise.resolve(mockHtmlWithJsonLd(recipe)),
-			}),
-		);
+		mockFetch(mockHtmlWithJsonLd(recipe));
 
 		const result = await scrapeRecipe("https://example.com/symbols");
 
@@ -239,13 +222,7 @@ describe("scrapeRecipe", () => {
 </html>
 `;
 
-		vi.stubGlobal(
-			"fetch",
-			vi.fn().mockResolvedValue({
-				ok: true,
-				text: () => Promise.resolve(html),
-			}),
-		);
+		mockFetch(html);
 
 		const result = await scrapeRecipe(
 			"https://www2.yoshikei-dvlp.co.jp/webodr/apl/10/recipe.aspx",
