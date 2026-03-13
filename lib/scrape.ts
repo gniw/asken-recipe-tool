@@ -39,7 +39,7 @@ export async function scrapeRecipe(url: string): Promise<ScrapeResult> {
 	);
 	for (const tag of scriptTags) {
 		try {
-			const json = JSON.parse(tag.text);
+			const json = JSON.parse(tag.innerHTML);
 			const recipe = findRecipeSchema(json);
 			if (recipe) {
 				return { ok: true, data: normalizeRecipe(recipe) };
