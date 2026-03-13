@@ -24,6 +24,21 @@ export default function Home() {
 		}
 	}, [recipePageUrl]);
 
+	const jsonLd =
+		state.status === "success"
+			? JSON.stringify(
+					{
+						"@context": "https://schema.org",
+						"@type": "Recipe",
+						name: state.recipeData.name,
+						recipeYield: state.recipeData.recipeYield,
+						recipeIngredient: state.recipeData.recipeIngredient,
+					},
+					null,
+					2,
+				)
+			: null;
+
 	return (
 		<main className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-100 flex items-center justify-center p-4">
 			<div className="w-full max-w-lg">
@@ -68,7 +83,7 @@ export default function Home() {
 						</div>
 					)}
 
-					{recipePageUrl && (
+					{recipePageUrl && jsonLd && (
 						<div className="mt-6 space-y-3">
 							<p className="text-sm font-medium text-gray-700">
 								生成されたURL（あすけんに貼り付けてください）
@@ -87,6 +102,16 @@ export default function Home() {
 							>
 								コピーする
 							</button>
+
+							<details className="group mt-2">
+								<summary className="cursor-pointer select-none text-xs text-gray-500 hover:text-gray-700 flex items-center gap-1 list-none">
+									<span className="transition-transform group-open:rotate-90">▶</span>
+									JSON-LDの内容を確認する
+								</summary>
+								<pre className="mt-2 p-3 bg-gray-50 border border-gray-200 rounded-lg text-xs text-gray-600 overflow-x-auto whitespace-pre-wrap break-all">
+									{jsonLd}
+								</pre>
+							</details>
 						</div>
 					)}
 				</div>

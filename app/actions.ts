@@ -5,7 +5,7 @@ import { scrapeRecipe } from "@/lib/scrape";
 export type ActionState =
 	| { status: "idle" }
 	| { status: "error"; message: string }
-	| { status: "success"; encodedData: string };
+	| { status: "success"; encodedData: string; recipeData: import("@/lib/scrape").RecipeData };
 
 export async function scrapeAction(
 	_prev: ActionState,
@@ -31,5 +31,5 @@ export async function scrapeAction(
 	const encodedData = Buffer.from(JSON.stringify(result.data)).toString(
 		"base64url",
 	);
-	return { status: "success", encodedData };
+	return { status: "success", encodedData, recipeData: result.data };
 }
